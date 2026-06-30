@@ -1,6 +1,6 @@
 # get_product_details / cross-market resolution regression tests
 # (CLAUDE.md S1.9, S5.2). Integration tests through the real HTTP route
-# (POST /tools/details), against the real ingested catalog.json - every
+# (POST /v1/tools/details), against the real ingested catalog.json - every
 # id/price/reason below was read out of the live resolution service before
 # being written as an assertion.
 
@@ -17,11 +17,11 @@ def client():
 
 
 def details(client, **payload):
-    return client.post("/tools/details", json=payload)
+    return client.post("/v1/tools/details", json=payload)
 
 
 def test_market_id_is_required_at_the_http_layer(client):
-    response = client.post("/tools/details", json={"product_id": "prod_000"})
+    response = client.post("/v1/tools/details", json={"product_id": "prod_000"})
     assert response.status_code == 422
 
 

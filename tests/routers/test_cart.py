@@ -1,5 +1,5 @@
 # calculate_cart regression tests (CLAUDE.md S1, S3.3, S5.4).
-# Integration tests through the real HTTP route (POST /tools/cart),
+# Integration tests through the real HTTP route (POST /v1/tools/cart),
 # against the real ingested catalog.json - every price/reason below was
 # read out of the live cart service before being written as an assertion.
 
@@ -17,17 +17,17 @@ def client():
 
 def cart(client, market_id="us", line_items=None):
     return client.post(
-        "/tools/cart", json={"market_id": market_id, "line_items": line_items or []}
+        "/v1/tools/cart", json={"market_id": market_id, "line_items": line_items or []}
     )
 
 
 def test_market_id_is_required_at_the_http_layer(client):
-    response = client.post("/tools/cart", json={"line_items": [{"product_id": "prod_001", "quantity": 1}]})
+    response = client.post("/v1/tools/cart", json={"line_items": [{"product_id": "prod_001", "quantity": 1}]})
     assert response.status_code == 422
 
 
 def test_empty_line_items_is_rejected_at_the_schema_layer(client):
-    response = client.post("/tools/cart", json={"market_id": "us", "line_items": []})
+    response = client.post("/v1/tools/cart", json={"market_id": "us", "line_items": []})
     assert response.status_code == 422
 
 

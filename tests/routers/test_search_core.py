@@ -1,6 +1,6 @@
 # search_catalog core filtering regression tests (CLAUDE.md S5.2, S3.3).
 #
-# Integration tests through the real HTTP route (POST /tools/search),
+# Integration tests through the real HTTP route (POST /v1/tools/search),
 # against the real ingested catalog.json - all ids/counts/prices below were
 # read out of the live index before being written as assertions.
 
@@ -17,12 +17,12 @@ def client():
 
 
 def search(client, **payload):
-    response = client.post("/tools/search", json=payload)
+    response = client.post("/v1/tools/search", json=payload)
     return response
 
 
 def test_market_id_is_required_at_the_http_layer(client):
-    response = client.post("/tools/search", json={"category": "apparel"})
+    response = client.post("/v1/tools/search", json={"category": "apparel"})
     assert response.status_code == 422
 
 

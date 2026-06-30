@@ -1,6 +1,6 @@
 # resolve_bundle / resolve_collection regression tests (CLAUDE.md S3.4, S5.2, S7).
-# Integration tests through the real HTTP routes (POST /tools/bundle,
-# POST /tools/collection), against the real ingested catalog.json - every
+# Integration tests through the real HTTP routes (POST /v1/tools/bundle,
+# POST /v1/tools/collection), against the real ingested catalog.json - every
 # id/price/status below was read out of the live resolution service before
 # being written as an assertion.
 
@@ -26,18 +26,18 @@ def index():
 
 
 def bundle_req(client, **payload):
-    return client.post("/tools/bundle", json=payload)
+    return client.post("/v1/tools/bundle", json=payload)
 
 
 def collection_req(client, **payload):
-    return client.post("/tools/collection", json=payload)
+    return client.post("/v1/tools/collection", json=payload)
 
 
 # --- resolve_bundle ---
 
 
 def test_bundle_market_id_is_required_at_the_http_layer(client):
-    response = client.post("/tools/bundle", json={"bundle_id": "bundle_001"})
+    response = client.post("/v1/tools/bundle", json={"bundle_id": "bundle_001"})
     assert response.status_code == 422
 
 
@@ -94,7 +94,7 @@ def test_non_bundle_id_is_rejected_with_a_clear_reason(client):
 
 
 def test_collection_market_id_is_required_at_the_http_layer(client):
-    response = client.post("/tools/collection", json={"collection_id": "coll_001"})
+    response = client.post("/v1/tools/collection", json={"collection_id": "coll_001"})
     assert response.status_code == 422
 
 
