@@ -10,7 +10,13 @@
 
 from fastapi import APIRouter, Request
 
-from app.models.tool_io import SearchCatalogRequest, SearchCatalogResponse
+from app.models.tool_io import (
+    GetProductDetailsRequest,
+    GetProductDetailsResponse,
+    SearchCatalogRequest,
+    SearchCatalogResponse,
+)
+from app.services.resolution_service import resolve_product_details
 from app.services.search_service import search_catalog
 
 router = APIRouter(prefix="/tools", tags=["tools"])
@@ -20,3 +26,9 @@ router = APIRouter(prefix="/tools", tags=["tools"])
 def search(payload: SearchCatalogRequest, request: Request) -> SearchCatalogResponse:
     index = request.app.state.catalog_index
     return search_catalog(payload, index)
+
+
+@router.post("/details", response_model=GetProductDetailsResponse)
+def details(payload: GetProductDetailsRequest, request: Request) -> GetProductDetailsResponse:
+    index = request.app.state.catalog_index
+    return resolve_product_details(payload, index)

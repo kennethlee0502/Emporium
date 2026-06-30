@@ -169,6 +169,25 @@ class ProductDetail(BaseModel):
     tags: Optional[List[str]] = Field(default=None, description="Descriptive tags attached to this product.")
 
 
+class LocalizedVariantSummary(BaseModel):
+    """Summary of one other market's localized version of a resolved product (CLAUDE.md S1.9)."""
+
+    id: str = Field(description="The catalog entity id of this market-specific variant.")
+    market_id: str = Field(description="The market this variant belongs to.")
+    name: str = Field(description="Display name of the product in this market.")
+    price: Optional[float] = Field(
+        default=None,
+        description="Price in this variant's own currency, or null if not fixed-priced. Never FX-converted from another market.",
+    )
+    currency: Optional[str] = Field(default=None, description="ISO currency code for `price`, e.g. 'EUR'.")
+    price_state: str = Field(
+        description="One of 'normal', 'null', 'missing', 'non_positive' - see CLAUDE.md S3.2."
+    )
+    is_purchasable: bool = Field(
+        description="True if this variant can be sold right now in its own market, per the pricing policy."
+    )
+
+
 class GetProductDetailsResponse(BaseModel):
     """Result of a get_product_details call."""
 
@@ -179,6 +198,15 @@ class GetProductDetailsResponse(BaseModel):
     )
     product: Optional[ProductDetail] = Field(
         default=None, description="The resolved product detail. Present only when `resolved` is true."
+    )
+    localized_variants: List[LocalizedVariantSummary] = Field(
+        default_factory=list,
+        description=(
+            "Other markets' localized versions of this same product (same product_group_id), "
+            "excluding the resolved market itself. Each market's price/currency is independently "
+            "authored, never FX-converted - see CLAUDE.md S1.9. Empty when `resolved` is false or "
+            "no other market carries this product."
+        ),
     )
     unresolved_reason: Optional[str] = Field(
         default=None,
