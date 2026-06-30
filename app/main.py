@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import CATALOG_PATH
 from app.indexing.catalog_index import build_catalog_index
 from app.ingestion.loader import load_catalog_from_file
+from app.routers.tools import router as tools_router
 
 
 @asynccontextmanager
@@ -26,6 +27,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Emporium Product Tool Service", lifespan=lifespan)
+app.include_router(tools_router)
 
 
 @app.get("/health")
