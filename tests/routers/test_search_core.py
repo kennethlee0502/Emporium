@@ -110,3 +110,76 @@ def test_collections_and_pages_never_appear_in_search_results(client):
     response = search(client, market_id="us", limit=100)
     types = {item["type"] for item in response.json()["results"]}
     assert types <= {"product", "gift_card", "bundle"}
+
+
+# --- Task 10: free-text relevance (RapidFuzz) + duplicate advisory ---
+
+
+def test_typo_query_still_finds_the_intended_item(client):
+    # "Crew Te" is a typo/truncation of "Crew Tee" - must still surface the
+    # Everyday Crew Tee family via fuzzy matching, not exact substring match.
+    response = search(client, market_id="us", query="Crew Te", limit=10)
+    ids = {item["id"] for item in response.json()["results"]}
+    assert {"prod_000", "prod_001", "prod_002"} <= ids
+
+
+def test_typo_query_across_word_order_and_misspelling(client):
+    # "hodie black" - misspelled "hoodie" plus a color term, no exact substring
+    # match anywhere in the catalog text.
+    response = search(client, market_id="us", query="hodie black", limit=10)
+    ids = {item["id"] for item in response.json()["results"]}
+    assert "prod_005" in ids  # Heavyweight Hoodie - Black
+
+
+def test_unrelated_query_returns_no_matches(client):
+    # A short "real words" nonsense phrase ("xyz totally unrelated nonsense")
+    # was tried first and rejected as a fixture: it scored a borderline 45.0
+    # against prod_inject_001's long, sentence-heavy description purely from
+    # incidental character/word overlap (a WRatio length-sensitivity
+    # artifact, not the injection payload being "obeyed" - this service
+    # never interprets catalog text as instructions). A clearly gibberish
+    # phrase keeps a wide safety margin (~36 max) below the 45.0 threshold
+    # across the entire catalog.
+    response = search(client, market_id="us", query="qzxv flibbertigibbet wobble", limit=10)
+    body = response.json()
+    assert body["total_matches"] == 0
+    assert body["results"] == []
+
+
+def test_relevance_sort_orders_by_match_quality_when_query_given(client):
+    response = search(client, market_id="us", query="classic white tee", sort_by="relevance", limit=20)
+    ids = [item["id"] for item in response.json()["results"]]
+    # The three near-identical "Classic White Tee" records are the best
+    # possible textual match for this exact query and must rank first.
+    assert ids[:3] == ["prod_dupe_a", "prod_dupe_b", "prod_dupe_c"]
+
+
+def test_duplicate_advisory_cross_references_siblings_without_merging(client):
+    response = search(client, market_id="us", query="classic white tee", limit=20)
+    by_id = {item["id"]: item for item in response.json()["results"]}
+
+    # All three are returned independently - never merged into one entry -
+    # with different prices/stock preserved (CLAUDE.md S3.4).
+    assert {"prod_dupe_a", "prod_dupe_b", "prod_dupe_c"} <= by_id.keys()
+    assert by_id["prod_dupe_a"]["price"] == 24.0
+    assert by_id["prod_dupe_b"]["price"] == 26.0
+    assert by_id["prod_dupe_c"]["price"] == 24.0
+
+    assert sorted(by_id["prod_dupe_a"]["possible_duplicate_ids"]) == ["prod_dupe_b", "prod_dupe_c"]
+    assert sorted(by_id["prod_dupe_b"]["possible_duplicate_ids"]) == ["prod_dupe_a", "prod_dupe_c"]
+    assert sorted(by_id["prod_dupe_c"]["possible_duplicate_ids"]) == ["prod_dupe_a", "prod_dupe_b"]
+
+
+def test_color_variant_siblings_are_not_falsely_flagged_as_duplicates(client):
+    # "Everyday Crew Tee - White/Black/Navy" are legitimately distinct
+    # products, not data-quality duplicates - must not be cross-referenced.
+    response = search(client, market_id="us", query="everyday crew tee", limit=20)
+    by_id = {item["id"]: item for item in response.json()["results"]}
+    for product_id in ("prod_000", "prod_001", "prod_002"):
+        assert by_id[product_id]["possible_duplicate_ids"] is None
+
+
+def test_items_without_duplicates_have_a_null_advisory_field(client):
+    response = search(client, market_id="us", category="footwear", limit=10)
+    for item in response.json()["results"]:
+        assert item["possible_duplicate_ids"] is None
