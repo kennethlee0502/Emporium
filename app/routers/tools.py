@@ -13,10 +13,14 @@ from fastapi import APIRouter, Request
 from app.models.tool_io import (
     GetProductDetailsRequest,
     GetProductDetailsResponse,
+    ResolveBundleRequest,
+    ResolveBundleResponse,
+    ResolveCollectionRequest,
+    ResolveCollectionResponse,
     SearchCatalogRequest,
     SearchCatalogResponse,
 )
-from app.services.resolution_service import resolve_product_details
+from app.services.resolution_service import resolve_bundle, resolve_collection, resolve_product_details
 from app.services.search_service import search_catalog
 
 router = APIRouter(prefix="/tools", tags=["tools"])
@@ -32,3 +36,15 @@ def search(payload: SearchCatalogRequest, request: Request) -> SearchCatalogResp
 def details(payload: GetProductDetailsRequest, request: Request) -> GetProductDetailsResponse:
     index = request.app.state.catalog_index
     return resolve_product_details(payload, index)
+
+
+@router.post("/bundle", response_model=ResolveBundleResponse)
+def bundle(payload: ResolveBundleRequest, request: Request) -> ResolveBundleResponse:
+    index = request.app.state.catalog_index
+    return resolve_bundle(payload, index)
+
+
+@router.post("/collection", response_model=ResolveCollectionResponse)
+def collection(payload: ResolveCollectionRequest, request: Request) -> ResolveCollectionResponse:
+    index = request.app.state.catalog_index
+    return resolve_collection(payload, index)

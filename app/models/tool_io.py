@@ -219,6 +219,129 @@ class GetProductDetailsResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# resolve_bundle / resolve_collection
+# ---------------------------------------------------------------------------
+
+
+class ResolveBundleRequest(BaseModel):
+    """Resolve a bundle and the live commercial status of each of its components."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    market_id: str = Field(
+        description="Required market the bundle must belong to, e.g. 'us', 'fr', 'de', 'uk'."
+    )
+    bundle_id: str = Field(description="The catalog entity id of the bundle to resolve.")
+
+
+class BundleComponentStatus(BaseModel):
+    """Live commercial status of a single bundle member, never used to override the bundle's own purchasability."""
+
+    id: str = Field(description="The catalog entity id of this bundle member, as listed on the bundle.")
+    name: Optional[str] = Field(
+        default=None, description="Display name, present only if this member resolved to a real entity."
+    )
+    status: Literal["active", "unavailable", "not_found"] = Field(
+        description=(
+            "'active' = resolved and currently purchasable; 'unavailable' = resolved but not "
+            "purchasable right now; 'not_found' = this member id does not resolve to any catalog entity."
+        )
+    )
+    price: Optional[float] = Field(default=None, description="This member's own price, if resolved.")
+    currency: Optional[str] = Field(default=None, description="ISO currency code for `price`, if resolved.")
+    is_purchasable: bool = Field(description="True only when status is 'active'.")
+
+
+class ResolveBundleResponse(BaseModel):
+    """Result of a resolve_bundle call: the bundle itself plus an item-by-item status ledger for its components."""
+
+    requested_bundle_id: str = Field(description="Echoes bundle_id from the request, for traceability.")
+    market_id: str = Field(description="Echoes market_id from the request.")
+    resolved: bool = Field(description="True if the bundle itself was found in the requested market.")
+    name: Optional[str] = Field(default=None, description="Display name of the bundle. Present only when resolved is true.")
+    price: Optional[float] = Field(
+        default=None, description="The bundle's own selling price, independent of its components' individual prices."
+    )
+    currency: Optional[str] = Field(default=None, description="ISO currency code for `price`.")
+    price_state: Optional[str] = Field(
+        default=None, description="One of 'normal', 'null', 'missing', 'non_positive' - see CLAUDE.md S3.2."
+    )
+    bundle_is_purchasable: bool = Field(
+        default=False,
+        description=(
+            "True if the bundle itself can be sold right now. This is independently authored "
+            "and is NOT derived from component availability (CLAUDE.md S7) - a bundle can remain "
+            "purchasable even while a component below has status 'unavailable'."
+        ),
+    )
+    components: List[BundleComponentStatus] = Field(
+        default_factory=list, description="Item-by-item status of every member listed on this bundle."
+    )
+    all_components_active: bool = Field(
+        default=False, description="True only if every component's status is 'active'."
+    )
+    unresolved_reason: Optional[str] = Field(
+        default=None,
+        description="Why the bundle could not be resolved. Present only when `resolved` is false.",
+    )
+
+
+class ResolveCollectionRequest(BaseModel):
+    """Resolve a collection's curated products against one specific market."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    market_id: str = Field(
+        description="Required market to resolve this collection's members in, e.g. 'us', 'fr', 'de', 'uk'."
+    )
+    collection_id: str = Field(description="The catalog entity id of the collection to resolve.")
+
+
+class CollectionComponentStatus(BaseModel):
+    """Live status of a single collection member, resolved against the collection's requested market."""
+
+    id: str = Field(description="The catalog entity id (or product_group_id) of this member, as listed on the collection.")
+    name: Optional[str] = Field(
+        default=None, description="Display name, present only if this member resolved in the requested market."
+    )
+    status: Literal["active", "unavailable", "out_of_scope", "not_found"] = Field(
+        description=(
+            "'active' = resolved in this market and purchasable; 'unavailable' = resolved in "
+            "this market but not purchasable right now; 'out_of_scope' = this product exists in "
+            "the catalog but has no version available in the requested market (e.g. a fr-only "
+            "product listed inside a us-market collection); 'not_found' = this member id does "
+            "not resolve to any catalog entity anywhere."
+        )
+    )
+    price: Optional[float] = Field(
+        default=None, description="This member's own price in the requested market, if resolved."
+    )
+    currency: Optional[str] = Field(default=None, description="ISO currency code for `price`, if resolved.")
+    is_purchasable: bool = Field(description="True only when status is 'active'.")
+
+
+class ResolveCollectionResponse(BaseModel):
+    """Result of a resolve_collection call: which curated members are actually live in the requested market."""
+
+    requested_collection_id: str = Field(description="Echoes collection_id from the request, for traceability.")
+    market_id: str = Field(description="Echoes market_id from the request.")
+    resolved: bool = Field(description="True if the collection itself was found in the requested market.")
+    name: Optional[str] = Field(
+        default=None, description="Display name of the collection. Present only when resolved is true."
+    )
+    components: List[CollectionComponentStatus] = Field(
+        default_factory=list, description="Item-by-item status of every member listed on this collection."
+    )
+    active_component_count: int = Field(
+        default=0, description="Number of members with status 'active' in the requested market."
+    )
+    unresolved_reason: Optional[str] = Field(
+        default=None,
+        description="Why the collection could not be resolved. Present only when `resolved` is false.",
+    )
+
+
+# ---------------------------------------------------------------------------
 # calculate_cart
 # ---------------------------------------------------------------------------
 
