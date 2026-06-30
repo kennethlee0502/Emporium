@@ -11,6 +11,8 @@
 from fastapi import APIRouter, Request
 
 from app.models.tool_io import (
+    CalculateCartRequest,
+    CalculateCartResponse,
     GetProductDetailsRequest,
     GetProductDetailsResponse,
     ResolveBundleRequest,
@@ -20,6 +22,7 @@ from app.models.tool_io import (
     SearchCatalogRequest,
     SearchCatalogResponse,
 )
+from app.services.cart_calculation_service import calculate_cart
 from app.services.resolution_service import resolve_bundle, resolve_collection, resolve_product_details
 from app.services.search_service import search_catalog
 
@@ -48,3 +51,9 @@ def bundle(payload: ResolveBundleRequest, request: Request) -> ResolveBundleResp
 def collection(payload: ResolveCollectionRequest, request: Request) -> ResolveCollectionResponse:
     index = request.app.state.catalog_index
     return resolve_collection(payload, index)
+
+
+@router.post("/cart", response_model=CalculateCartResponse)
+def cart(payload: CalculateCartRequest, request: Request) -> CalculateCartResponse:
+    index = request.app.state.catalog_index
+    return calculate_cart(payload, index)
