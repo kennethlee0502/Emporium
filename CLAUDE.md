@@ -4,6 +4,17 @@ This file is the persistent project memory for Claude Code. Read it before makin
 
 ---
 
+## 0. Implementation Status — FROZEN FOR DELIVERY
+
+All 14 build tasks are **complete**: discriminated-union entity models → text repair → sanitizer/injection-flagging → ingestion pipeline → in-memory index → pricing policy → FastAPI startup/health → tool I/O contracts → search (core filtering) → search (fuzzy matching + duplicate advisory) → product detail + cross-market resolution → bundle/collection partial resolution → stateless cart calculation → OpenAPI metadata + `/v1` path-versioning polish.
+
+- **Test suite: 137 passed, 0 failed** (`pytest -q`), reconfirmed on a fresh run at freeze time.
+- All five agent-facing tools are live under `/v1/tools/{search,details,bundle,collection,cart}`; `/health` is intentionally unversioned (ops-only, not part of the agent's tool surface — see §2.3, §4).
+- Every load-bearing rule in this document (load-time/request-time split in §2.1, mandatory `market_id` in §5.2, the sanitization chokepoint in §5.1, `is_purchasable()` as the single purchasability authority in §3.3) is implemented and covered by the test suite.
+- No further code changes are expected past this point without an explicit new task. If you are reading this to start new work, this status block is now stale — update it.
+
+---
+
 ## 1. Project Overview
 
 **Emporium Product Tool Service** is a stateless backend tool/plugin layer. Its only consumer is an **upstream AI Shopping Agent calling it via LLM Function Calling** — there is no human-facing UI, no browser session, no cookies, no server-side conversation memory.
@@ -169,7 +180,7 @@ These rules exist because this dataset contains **real adversarial content** des
 
 ## 6. Known Dataset Anomalies (Regression Reference)
 
-Keep `tests/ingestion/test_known_anomalies.py` covering at least these records by `id`. If `catalog.json` is ever regenerated/replaced, re-verify these cases still exist or update this list:
+Coverage for every id below ended up spread across the test suite at the layer where each anomaly is actually meaningful, rather than a single consolidated `test_known_anomalies.py` (the original plan) — `tests/models/test_entities.py` (parsing/price-state), `tests/ingestion/test_loader.py` (pipeline-level), `tests/indexing/test_catalog_index.py`, `tests/services/test_pricing_policy.py`, and `tests/routers/{test_search_core,test_details,test_bundles_collections}.py` (tool-level behavior). If `catalog.json` is ever regenerated/replaced, re-verify these cases still exist or update this list:
 
 - `prod_str_001`, `prod_str_002` — string-typed price, must coerce to float.
 - `prod_null_001`, `gift_001`, `gift_002` — intentional `null` price.
