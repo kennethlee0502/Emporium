@@ -1,1 +1,6 @@
-# Settings placeholder (catalog file path, feature flags). Implemented in a later phase.
+# Settings: file paths and feature flags (CLAUDE.md folder-structure conventions).
+
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+CATALOG_PATH = PROJECT_ROOT / "catalog.json"
